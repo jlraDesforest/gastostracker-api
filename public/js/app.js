@@ -18,10 +18,35 @@ btnTema.addEventListener('click', () => {
     }
 });
 
-// Autocompletar fecha y hora actual
-const ahora = new Date();
-document.getElementById('fecha').value = ahora.toISOString().split('T')[0];
-document.getElementById('hora').value = ahora.toTimeString().split(' ')[0].substring(0,5);
+// Autocompletar y actualizar fecha/hora en tiempo real
+const inputFecha = document.getElementById('fecha');
+const inputHora = document.getElementById('hora');
+let tiempoModificado = false; // Bandera para saber si editaste a mano
+
+// Si tocas la fecha u hora, detenemos el reloj automático
+inputFecha.addEventListener('input', () => tiempoModificado = true);
+inputHora.addEventListener('input', () => tiempoModificado = true);
+
+function actualizarReloj() {
+    if (!tiempoModificado) {
+        const ahora = new Date();
+        
+        // Extraer y formatear Fecha local (YYYY-MM-DD)
+        const año = ahora.getFullYear();
+        const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+        const dia = String(ahora.getDate()).padStart(2, '0');
+        inputFecha.value = `${año}-${mes}-${dia}`;
+        
+        // Extraer y formatear Hora local (HH:MM)
+        const horas = String(ahora.getHours()).padStart(2, '0');
+        const minutos = String(ahora.getMinutes()).padStart(2, '0');
+        inputHora.value = `${horas}:${minutos}`;
+    }
+}
+
+// Arrancar el reloj al cargar y actualizar cada 10 segundos
+actualizarReloj();
+setInterval(actualizarReloj, 10000);
 
 // Calcular y actualizar Dashboard
 function actualizarDashboard(gastos) {
@@ -133,7 +158,9 @@ form.addEventListener('submit', async (e) => {
     document.getElementById('concepto').value = '';
     document.getElementById('descripcion').value = '';
     document.getElementById('monto').value = '';
-    archivoInput.value = ''; 
+    archivoInput.value = '';
+    tiempoModificado = false; // NUEVO: Reactivamos el reloj automático
+    actualizarReloj();        // NUEVO: Actualizamos la hora al instante     
     cargarGastos();
 });
 
