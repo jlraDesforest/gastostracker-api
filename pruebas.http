@@ -1,0 +1,28 @@
+HTTP
+### 1. Ver todos los gastos (GET)
+GET http://100.92.239.71:3000/api/gastos
+
+### 2. Insertar un nuevo gasto (POST)
+POST http://100.92.239.71:3000/api/gastos
+Content-Type: application/json
+
+{
+  "concepto": "Almuerzo Menú",
+  "monto": 15.50,
+  "fecha": "2026-11-07",
+  "tipo": "Egreso"
+}
+
+### 3. Actualizar el gasto con ID 1 (PUT)
+PUT http://100.92.239.71:3000/api/gastos/1
+Content-Type: application/json
+
+{
+  "concepto": "Almuerzo Menú (Actualizado)",
+  "monto": 18.00,
+  "fecha": "2026-11-07",
+  "tipo": "Egreso"
+}
+
+### 4. Eliminar el gasto con ID 1 (DELETE)
+DELETE http://100.92.239.71:3000/api/gastos/1
