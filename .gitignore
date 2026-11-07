@@ -1,2 +1,4 @@
-node_modules/
+# Ignorar datos de usuario y archivos subidos
 gastos.db
+public/uploads/*
+!public/uploads/.gitkeep
