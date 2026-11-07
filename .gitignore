@@ -1,4 +1,5 @@
 # Ignorar datos de usuario y archivos subidos
+node_modules/
 gastos.db
 public/uploads/*
 !public/uploads/.gitkeep
