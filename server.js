@@ -8,6 +8,8 @@ const port = 3000;
 // Middlewares obligatorios
 app.use(cors());
 app.use(express.json()); // Permite recibir datos en formato JSON
+app.use(express.static('public'));
+
 
 // 1. Conexión a SQLite y creación de tabla
 const db = new sqlite3.Database('./gastos.db', (err) => {
