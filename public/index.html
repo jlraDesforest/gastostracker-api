@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GastosTracker - Acceso</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .auth-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .toggle-text {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+        .toggle-text a {
+            color: #007bff;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .hidden {
+            display: none;
+        }
+        .error-message {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="auth-container">
+    <h2>GastosTracker</h2>
+    
+    <div id="errorBox" class="error-message hidden"></div>
+
+    <!-- Formulario de Login -->
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="loginEmail">Correo Electrónico</label>
+            <input type="email" id="loginEmail" required placeholder="tu@correo.com">
+        </div>
+        <div class="form-group">
+            <label for="loginPassword">Contraseña</label>
+            <input type="password" id="loginPassword" required placeholder="********">
+        </div>
+        <button type="submit">Ingresar</button>
+        <p class="toggle-text">¿No tienes cuenta? <a onclick="toggleForms()">Regístrate aquí</a></p>
+    </form>
+
+    <!-- Formulario de Registro -->
+    <form id="registerForm" class="hidden">
+        <div class="form-group">
+            <label for="regName">Nombre</label>
+            <input type="text" id="regName" required placeholder="Tu nombre">
+        </div>
+        <div class="form-group">
+            <label for="regEmail">Correo Electrónico</label>
+            <input type="email" id="regEmail" required placeholder="tu@correo.com">
+        </div>
+        <div class="form-group">
+            <label for="regPassword">Contraseña</label>
+            <input type="password" id="regPassword" required placeholder="********">
+        </div>
+        <button type="submit">Crear Cuenta</button>
+        <p class="toggle-text">¿Ya tienes cuenta? <a onclick="toggleForms()">Inicia sesión</a></p>
+    </form>
+</div>
+
+<script>
+    // Alternar entre las vistas de Login y Registro
+    function toggleForms() {
+        document.getElementById('loginForm').classList.toggle('hidden');
+        document.getElementById('registerForm').classList.toggle('hidden');
+        document.getElementById('errorBox').classList.add('hidden');
+    }
+
+    function mostrarError(mensaje) {
+        const errorBox = document.getElementById('errorBox');
+        errorBox.textContent = mensaje;
+        errorBox.classList.remove('hidden');
+    }
+
+    // Manejar el Registro de Usuario
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPassword').value;
+
+        try {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, email, password })
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                alert('Cuenta creada exitosamente. Ahora puedes iniciar sesión.');
+                toggleForms(); // Volver a la pantalla de login
+            } else {
+                mostrarError(data.error || 'Error al registrar');
+            }
+        } catch (error) {
+            mostrarError('Error de conexión con el servidor');
+        }
+    });
+
+    // Manejar el Inicio de Sesión
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                // GUARDAR EL TOKEN EN EL NAVEGADOR
+                localStorage.setItem('token', data.token);
+                // REDIRIGIR AL ÁREA PRIVADA
+                window.location.href = '/dashboard.html';
+            } else {
+                mostrarError(data.error || 'Credenciales incorrectas');
+            }
+        } catch (error) {
+            mostrarError('Error de conexión con el servidor');
+        }
+    });
+
+    // Si ya hay un token válido, redirigir automáticamente
+    if (localStorage.getItem('token')) {
+        window.location.href = '/dashboard.html';
+    }
+</script>
+
+</body>
+</html>

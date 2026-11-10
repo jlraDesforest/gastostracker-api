@@ -4,6 +4,21 @@ const tablaCuerpo = document.getElementById('tablaCuerpo');
 const htmlElement = document.documentElement;
 const btnTema = document.getElementById('btnTema');
 
+// EXTRAER LA LLAVE GUARDADA
+const token = localStorage.getItem('token');
+
+// SI NO HAY LLAVE, EXPULSAR AL LOGIN INMEDIATAMENTE
+if (!token) {
+    window.location.href = '/'; 
+}
+
+// FUNCIÓN PARA EXPULSAR MANUALMENTE
+function cerrarSesion() {
+    localStorage.removeItem('token');
+    window.location.href = '/';
+}
+
+
 // Alternar Modo Claro/Oscuro
 btnTema.addEventListener('click', () => {
     const temaActual = htmlElement.getAttribute('data-bs-theme');
@@ -79,32 +94,57 @@ function actualizarDashboard(gastos) {
 
 // Leer registros (GET) y pintar la tabla
 async function cargarGastos() {
-    const res = await fetch('/api/gastos');
-    const gastos = await res.json();
-    
-    actualizarDashboard(gastos);
-
-    tablaCuerpo.innerHTML = '';
-    gastos.forEach(g => {
-        const enlace = g.comprobante ? `<a href="${g.comprobante}" target="_blank" class="badge bg-info text-dark text-decoration-none mt-1 d-inline-block">📄 Ver Voucher</a>` : '';
+    try {
+        // CAMBIO 1: Enviar el carnet de identidad (Token)
+        // Ya no es un fetch vacío. Le agregamos "headers" (cabeceras ocultas)
+        // donde inyectamos el JWT usando el formato estándar 'Bearer'.
+        const res = await fetch('/api/gastos', {
+            // Se quita method y body, por defecto es GET
+            headers: {
+                'Authorization': `Bearer ${token}` 
+            }
+        });
         
-        tablaCuerpo.innerHTML += `
-            <tr>
-                <td style="font-size: 0.8rem;">${g.fecha}<br><span class="text-muted">${g.hora}</span></td>
-                <td>
-                    <span class="fw-bold">${g.concepto}</span><br>
-                    <span class="text-muted" style="font-size: 0.85rem;">${g.descripcion}</span>
-                </td>
-                <td style="font-size: 0.85rem;">
-                    <span class="badge text-bg-secondary">${g.metodo}</span><br>${enlace}
-                </td>
-                <td class="${g.tipo === 'Ingreso' ? 'texto-ingreso' : 'text-danger'} fw-bold" style="white-space: nowrap;">
-                    ${g.tipo === 'Ingreso' ? '+' : '-'} S/ ${g.monto.toFixed(2)}
-                </td>
-                <td><button class="btn btn-sm btn-outline-danger" onclick="borrarGasto(${g.id})">X</button></td>
-            </tr>
-        `;
-    });
+        // CAMBIO 2: Verificar si el guardia (Backend) nos dejó pasar
+        // Si el token es inventado o ya pasaron 24 horas, el backend 
+        // responderá con status 401 o 403. Si es así, cerramos su sesión.
+        if (res.status === 401 || res.status === 403) {
+            alert("Tu sesión ha expirado. Por favor, inicia sesión de nuevo.");
+            cerrarSesion();
+            return; // Detiene la ejecución para que no intente dibujar la tabla
+        }
+
+        // Si pasó la seguridad, extraemos los datos como siempre
+        const gastos = await res.json();
+        
+        actualizarDashboard(gastos);
+
+        tablaCuerpo.innerHTML = '';
+        gastos.forEach(g => {
+            const enlace = g.comprobante ? `<a href="${g.comprobante}" target="_blank" class="badge bg-info text-dark text-decoration-none mt-1 d-inline-block">📄 Ver Voucher</a>` : '';
+            
+            // Tu código HTML de la tabla se mantiene idéntico
+            tablaCuerpo.innerHTML += `
+                <tr>
+                    <td style="font-size: 0.8rem;">${g.fecha}<br><span class="text-muted">${g.hora}</span></td>
+                    <td>
+                        <span class="fw-bold">${g.concepto}</span><br>
+                        <span class="text-muted" style="font-size: 0.85rem;">${g.descripcion}</span>
+                    </td>
+                    <td style="font-size: 0.85rem;">
+                        <span class="badge text-bg-secondary">${g.metodo}</span><br>${enlace}
+                    </td>
+                    <td class="${g.tipo === 'Ingreso' ? 'texto-ingreso' : 'text-danger'} fw-bold" style="white-space: nowrap;">
+                        ${g.tipo === 'Ingreso' ? '+' : '-'} S/ ${g.monto.toFixed(2)}
+                    </td>
+                    <td><button class="btn btn-sm btn-outline-danger" onclick="borrarGasto(${g.id})">X</button></td>
+                </tr>
+            `;
+        });
+    } catch (error) {
+        // CAMBIO 3: Si se cae el internet o el servidor de PM2 está apagado, lo atrapamos aquí
+        console.error("Error al comunicarse con el servidor:", error);
+    }
 }
 
 // Crear registro (POST)
@@ -151,6 +191,9 @@ form.addEventListener('submit', async (e) => {
 
     await fetch('/api/gastos', {
         method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}` // Aquí faltaba tu carnet de identidad
+        },
         body: formData
     });
 
@@ -167,8 +210,13 @@ form.addEventListener('submit', async (e) => {
 // Borrar registro (DELETE)
 async function borrarGasto(id) {
     if(confirm("¿Borrar permanentemente?")) {
-        await fetch(`/api/gastos/${id}`, { method: 'DELETE' });
-        cargarGastos();
+        await fetch(`/api/gastos/${id}`, { 
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        cargarGastos(); // Faltaba actualizar la tabla después de borrar
     }
 }
 
